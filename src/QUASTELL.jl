@@ -53,30 +53,42 @@ include("fluctuations.jl")     # 3. the Mtilde matrices and boundary surgery
 include("qnms.jl")             # 4. spectrum, multi-grid filter, dispersion
 include("plotting.jl")
 
-# A castell -- a Catalan human tower, enxaneta on top -- beside the name.  The
-# first `_TOWER` columns are the tower, the rest the lettering.
-const BANNER = raw"""
+# A castell -- a Catalan human tower, enxaneta on top -- on each side of the name.
+const _CASTELL = split(raw"""
     \o/
      |
-   o/ \o         ___    _   _      _      ____    _____   _____   _       _
-  /|\ /|\       / _ \  | | | |    / \    / ___|  |_   _| | ____| | |     | |
- o/ \o/ \o     | | | | | | | |   / _ \   \___ \    | |   |  _|   | |     | |
-/|\ /|\ /|\    | |_| | | |_| |  / ___ \   ___) |   | |   | |___  | |___  | |___
-/ \ / \ / \     \__\_\  \___/  /_/   \_\ |____/    |_|   |_____| |_____| |_____|
-"""
-const _TOWER = 15
+   o/ \o
+  /|\ /|\
+ o/ \o/ \o
+/|\ /|\ /|\
+/ \ / \ / \
+""", '\n'; keepempty = false)
 
-# The banner is for people: it shows in the REPL and in Jupyter, never in scripts
-# or tests.  Set ENV["QUASTELL_BANNER"] = "false" before `using` to silence it.
+const _NAME = vcat(["", ""], split(raw"""
+  ___    _   _      _      ____    _____   _____   _       _
+ / _ \  | | | |    / \    / ___|  |_   _| | ____| | |     | |
+| | | | | | | |   / _ \   \___ \    | |   |  _|   | |     | |
+| |_| | | |_| |  / ___ \   ___) |   | |   | |___  | |___  | |___
+ \__\_\  \___/  /_/   \_\ |____/    |_|   |_____| |_____| |_____|
+""", '\n'; keepempty = false))
+
+const _TAGLINE = "QUAsinormal Spectra of ThErmaL hoLography"
+
+# The banner is for people: it shows in the REPL, in Jupyter (IJulia) and in VS Code
+# notebooks (VSCodeServer), never in scripts or tests.  Set
+# ENV["QUASTELL_BANNER"] = "false" before `using` to silence it.
 function __init__()
-    (isinteractive() || isdefined(Main, :IJulia)) || return
+    (isinteractive() || isdefined(Main, :IJulia) || isdefined(Main, :VSCodeServer)) || return
     lowercase(get(ENV, "QUASTELL_BANNER", "true")) == "false" && return
-    for line in split(BANNER, '\n'; keepempty = false)
-        printstyled(line[1:min(end, _TOWER)]; color = :red, bold = true)
-        printstyled(length(line) > _TOWER ? line[_TOWER+1:end] : ""; color = :blue, bold = true)
+    # 93 columns with both towers; a terminal narrower than that gets only the left one.
+    both = !(stdout isa Base.TTY && displaysize(stdout)[2] < 93)
+    for (tower, name) in zip(_CASTELL, _NAME)
+        printstyled(rpad(tower, 14); color = :red, bold = true)
+        printstyled(both ? rpad(name, 68) : name; color = :blue, bold = true)
+        both && printstyled(tower; color = :red, bold = true)
         println()
     end
-    printstyled(" "^_TOWER, "QUAsinormal Spectra of ThErmaL hoLography\n\n"; color = :light_black)
+    printstyled(" "^(14 + (65 - length(_TAGLINE)) ÷ 2), _TAGLINE, "\n\n"; color = :light_black)
     return nothing
 end
 

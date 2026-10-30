@@ -1,5 +1,16 @@
 # QUASTELL
 
+```text
+    \o/                                                                               \o/
+     |                                                                                 |
+   o/ \o        ___    _   _      _      ____    _____   _____   _       _           o/ \o
+  /|\ /|\      / _ \  | | | |    / \    / ___|  |_   _| | ____| | |     | |         /|\ /|\
+ o/ \o/ \o    | | | | | | | |   / _ \   \___ \    | |   |  _|   | |     | |        o/ \o/ \o
+/|\ /|\ /|\   | |_| | | |_| |  / ___ \   ___) |   | |   | |___  | |___  | |___    /|\ /|\ /|\
+/ \ / \ / \    \__\_\  \___/  /_/   \_\ |____/    |_|   |_____| |_____| |_____|   / \ / \ / \
+                          QUAsinormal Spectra of ThErmaL hoLography
+```
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **QUA**sinormal **S**pectra of **T**h**E**rma**L** ho**L**ography.
@@ -79,7 +90,7 @@ using QUASTELL
 
 The first `using` precompiles Plots and takes a few minutes. Later sessions start much faster.
 
-In the REPL and in Jupyter, loading the package greets you with a castell. To skip it, set
+In the REPL, in Jupyter and in VS Code notebooks, loading the package greets you with a castell. To skip it, set
 `ENV["QUASTELL_BANNER"] = "false"` before `using QUASTELL`.
 
 ## Quick start
@@ -168,9 +179,9 @@ several layers.
    as a Dirichlet value. That removes an N-independent artifact (the non-normalisable 1/u
    branch, living on the second gridpoint) and improves the convergence of the light modes by
    four to five orders of magnitude. It is off by default, but recommended for light modes.
-   At q ≠ 0 it also leaves a couple of exact zeros λ = 0 in the spectrum. They are the same
-   on every grid, so they pass the test with `err = 0`. Drop them with
-   `err < 1e-2 * abs(lambda)`, which an exact zero never satisfies.
+   The rescaling zeroes the u = 0 column of the pencil, which plants an exact eigenvalue
+   λ = 0 on every grid. The raw spectrum drops it (|λ| < 10⁻¹²), so it can't pass the test
+   or capture a branch in `dispersion`.
 5. **Balancing.** The pencil is solved for λ rather than ω, with its rows equilibrated. Both
    are exact transformations that leave the spectrum unchanged.
 

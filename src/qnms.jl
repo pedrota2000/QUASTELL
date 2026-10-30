@@ -73,7 +73,13 @@ function _spectrum(m::Bea_Mateos, phiH::Real, q::Real, N::Int; cutoff::Real = In
         w = eigvals(M0, -M1)
     end
 
-    keep = [z for z in w if isfinite(z) && abs(z) < cutoff]
+    # The rescaling Zphi = u^s Ztilde with s >= 1 zeroes the u = 0 column of every
+    # Mt[n], and once `no_source_row!` has cleared row 1 too, e_1 is an exact
+    # eigenvector with omega = 0 -- on every grid, so it passes the resolution
+    # test (err = 0) and `dispersion` locks onto it as soon as a growth rate gets
+    # small.  Nothing physical sits at |lambda| < 1e-12 for q != 0, and at q = 0
+    # `origintol` removes that region anyway.
+    keep = [z for z in w if isfinite(z) && abs(z) > 1e-12 * sc && abs(z) < cutoff]
     return ComplexF64.(keep), b.T
 end
 
