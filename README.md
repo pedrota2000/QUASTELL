@@ -6,6 +6,13 @@
 
 The name also reads as *qua + castell*: QNMs come in towers, like the Catalan human towers.
 
+<p align="center">
+  <img src="assets/spinodal.gif" alt="Sound modes of a black brane becoming unstable across the spinodal branch" width="900">
+</p>
+
+*A black brane crosses the spinodal branch (left), and its two sound modes (right) meet on the
+imaginary axis, where one of them grows.*
+
 QUASTELL is a Julia pipeline for the quasinormal modes (QNMs) of five-dimensional holographic
 black branes with a self-interacting scalar field. It goes from the bulk potential to the
 background geometry, then to the thermodynamics and its first-order phase transition, and
@@ -71,6 +78,9 @@ using QUASTELL
 ```
 
 The first `using` precompiles Plots and takes a few minutes. Later sessions start much faster.
+
+In the REPL and in Jupyter, loading the package greets you with a castell. To skip it, set
+`ENV["QUASTELL_BANNER"] = "false"` before `using QUASTELL`.
 
 ## Quick start
 
@@ -230,6 +240,9 @@ QUASTELL/
 │   └── runtests.jl
 ├── notebooks/
 │   └── QUASTELL_demo.ipynb   tour of the whole pipeline
+├── assets/
+│   ├── spinodal.gif          the animation at the top of this README
+│   └── make_gif.jl           regenerates it
 └── mathematica/
     └── Derive_the_equations.nb   derivation of the equations, and the Julia exporter
 ```
