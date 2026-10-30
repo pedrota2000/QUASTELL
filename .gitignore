@@ -1,0 +1,20 @@
+# Julia
+Manifest.toml
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+/docs/build/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Generated data and figures (keep them out of the repo)
+*.h5
+*.csv
+*.pdf
+*.png
+
+# Editors / OS
+.vscode/
+.DS_Store
+Thumbs.db
