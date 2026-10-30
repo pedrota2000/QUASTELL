@@ -10,12 +10,17 @@
 # and the equation of state alone would call the plasma stable.
 ENV["GKSwstype"] = "100"                     # draw off-screen
 using QUASTELL, Plots, Printf
+# Labels are LaTeX: GR renders any string wrapped in $...$ with its own TeX engine.  The
+# ticks follow in Computer Modern, which is safe as long as no ³ goes through it.
+default(fontfamily = "Computer Modern", titlefontsize = 17, guidefontsize = 16,
+        tickfontsize = 11, legendfontsize = 12)
 
 const m    = Bea_Mateos(0.8, 10; chi = 1.0)
 const NS   = (40, 50, 60)
 const OUT  = joinpath(@__DIR__, "gapmode.gif")
-const WMAX = 2.0                             # window in omega/2piTc: the lightest gapped
-                                             # pair and its partner
+const WMAX = 3.0                             # |omega/2piT| kept: the lowest pairs, and the
+const XLIM = (-3.1, 3.1)                     # nearly-real ones of the cold branch
+const YLIM = (-2.6, 1.0)                     # right panel, in omega/2piT
 const IMTOL = 1e-5                           # Im above this is unstable; the nearly-real
                                              # cold-branch pair has |Im| ~ 1e-8 roundoff
 
@@ -41,8 +46,7 @@ for N in NS
     end
 end
 
-# Gapped modes at k = 0, as omega/2piTc = lambda T/Tc: in units of T a fixed gap
-# runs off to infinity down the cold branch, in units of Tc it stays put.
+# Gapped modes at k = 0, in units of the brane's own temperature: lambda = omega/2piT.
 # origintol = 1e-6 keeps light modes near the crossing.
 usable(phiH) = all(N -> haskey(m.bg, (N, phiH)) && m.bg[(N, phiH)].converged, NS)
 Tof(phiH) = (b = m.bg[(NS[end], phiH)]; b.T / b.Lambda / Tc)
@@ -52,8 +56,8 @@ frames = map(filter(p -> usable(p) && inwindow(p), PHIS)) do phiH
              bcexpand = true, verbose = false)
     b = background(m, phiH; N = NS[end])
     tt = b.T / b.Lambda / Tc
-    light = [r.lambda[i] * tt for i in eachindex(r.lambda)
-             if r.err[i] < 1e-2 * abs(r.lambda[i]) && abs(r.lambda[i]) * tt < WMAX]
+    light = [r.lambda[i] for i in eachindex(r.lambda)
+             if r.err[i] < 1e-2 * abs(r.lambda[i]) && abs(r.lambda[i]) < WMAX]
     @printf("phiH = %.5f  T/Tc = %.4f  %d modes%s\n", phiH, tt,
             length(light), any(z -> imag(z) > IMTOL, light) ? "  (unstable)" : "")
     (phiH = phiH, t = tt, s = b.S / b.Lambda^3 / Tc^3, modes = light)
@@ -73,32 +77,38 @@ function draw(k)
     unstable = filter(z -> imag(z) > IMTOL, f.modes)
     stable   = filter(z -> imag(z) <= IMTOL, f.modes)
 
-    p1 = plot(t, s; c = :gray30, lw = 2, label = "", xlabel = "T/Tc", ylabel = "s/Tc³",
-              title = "equation of state", xlims = TWIN, ylims = (0, 1.1smax),
-              legend = :topleft)
-    plot!(p1, t, s_neg; c = :red, lw = 3, label = "ds/dT < 0")
-    vline!(p1, [1.0]; ls = :dash, c = :black, label = "Tc")
+    p1 = plot(t, s; c = :gray30, lw = 2, label = "", xlabel = raw"$T/T_c$",
+              ylabel = raw"$s/T_c^3$", title = raw"$\mathrm{Equation\ of\ state}$",
+              xlims = TWIN, ylims = (0, 1.1smax), legend = :topleft)
+    plot!(p1, t, s_neg; c = :red, lw = 3, label = raw"$ds/dT < 0$")
+    vline!(p1, [1.0]; ls = :dash, c = :black, label = raw"$T_c$")
     scatter!(p1, [f.t], [f.s]; ms = 9, c = isempty(unstable) ? :dodgerblue : :red,
              msw = 2, msc = :black, label = "")
 
-    p2 = plot(xlabel = "Re ω/2πTc", ylabel = "Im ω/2πTc", title = "gapped QNMs at k = 0",
-              xlims = (-2.0, 2.0), ylims = (-1.6, 0.8), legend = :bottomright)
+    p2 = plot(xlabel = raw"$\Re\;\omega/2\pi T$",
+              ylabel = raw"$\Im\;\omega/2\pi T$",
+              title = raw"$\mathrm{Gapped\ QNMs\ at}\ k = 0$",
+              xlims = XLIM, ylims = YLIM, legend = :bottomright)
     hline!(p2, [0.0]; c = :black, lw = 1, label = "")
     for j in 1:k-1                                              # trails
         scatter!(p2, real.(frames[j].modes), imag.(frames[j].modes); ms = 2, msw = 0,
                  c = :gray70, alpha = 0.6, label = "")
     end
     scatter!(p2, real.(stable), imag.(stable); ms = 7, c = :dodgerblue, msw = 1,
-             label = "damped")
+             label = raw"$\mathrm{damped}$")
     isempty(unstable) || scatter!(p2, real.(unstable), imag.(unstable); ms = 12,
-                                  m = :star5, c = :red, msw = 1, label = "unstable")
-    annotate!(p2, -1.93, 0.68, text(@sprintf("φH = %.4f   T/Tc = %.3f", f.phiH, f.t), 9, :left))
+                                  m = :star5, c = :red, msw = 1, label = raw"$\mathrm{unstable}$")
+    x0 = XLIM[1] + 0.03 * (XLIM[2] - XLIM[1])                  # top-left corner
+    y0(row) = YLIM[2] - (0.06 + 0.09 * row) * (YLIM[2] - YLIM[1])
+    annotate!(p2, x0, y0(0), text(@sprintf("\$\\phi_H = %.4f \\qquad T/T_c = %.3f\$",
+                                           f.phiH, f.t), 12, :left))
     if !isempty(unstable) && dsdT_at(f.phiH) > 0
-        annotate!(p2, -1.93, 0.5, text("unstable although ds/dT > 0", 9, :left, :red))
+        annotate!(p2, x0, y0(1), text(raw"$\mathrm{unstable\ although}\ ds/dT > 0$",
+                                      12, :left, :red))
     end
 
-    plot(p1, p2; layout = (1, 2), size = (960, 400), left_margin = 5Plots.mm,
-         bottom_margin = 5Plots.mm)
+    plot(p1, p2; layout = (1, 2), size = (1000, 440), left_margin = 6Plots.mm,
+         bottom_margin = 6Plots.mm)
 end
 
 anim = Animation()
