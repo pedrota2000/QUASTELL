@@ -22,7 +22,9 @@ artifacts of the master equations (see [Physical modes and artifacts](#physical-
 
 ## The model
 
-Einstein gravity in AdS<sub>5</sub> coupled to a scalar with potential derived from the superpotential
+QUASTELL implements the model of Bea and Mateos
+([arXiv:1805.01806](https://arxiv.org/abs/1805.01806)): Einstein gravity in AdS<sub>5</sub>
+coupled to a scalar, with potential derived from the superpotential (their eqs. 2.2–2.3, with L = 1)
 
 $$
 W(\phi) = -\frac{3}{2} - \frac{\phi^2}{2} - \frac{\phi^4}{4\phi_M^2} + \frac{\phi^6}{\phi_Q},
@@ -234,7 +236,10 @@ QUASTELL/
 
 ## Acknowledgements and references
 
-QUASTELL builds on two earlier pieces of work, and if you use it, please cite them as well.
+QUASTELL builds on the following work, and if you use it, please cite these as well.
+
+- **The model.** Y. Bea and D. Mateos, *Heating up Exotic RG Flows with Holography*,
+  JHEP **08** (2018) 034, [arXiv:1805.01806](https://arxiv.org/abs/1805.01806).
 
 - **QNMspectral**, the Mathematica package by Aron Jansen for computing quasinormal modes with
   spectral methods ([github.com/APJansen/QNMspectral](https://github.com/APJansen/QNMspectral)).

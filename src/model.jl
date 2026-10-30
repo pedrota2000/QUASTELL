@@ -40,7 +40,8 @@ end
 """
     Bea_Mateos(phiM, phiQ; chi = 1.0, nu = 1.0)
 
-The Bea-Mateos model with potential parameters `phiM`, `phiQ`.  The constructor
+The Bea-Mateos model (Y. Bea and D. Mateos, JHEP 08 (2018) 034,
+arXiv:1805.01806) with potential parameters `phiM`, `phiQ`.  The constructor
 builds V, V', V'' and locates `phiMax`, the minimum of V, which bounds the
 physical range of the horizon value phiH.
 
