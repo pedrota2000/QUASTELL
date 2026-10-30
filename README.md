@@ -18,11 +18,13 @@
 The name also reads as *qua + castell*: QNMs come in towers, like the Catalan human towers.
 
 <p align="center">
-  <img src="assets/spinodal.gif" alt="Sound modes of a black brane becoming unstable across the spinodal branch" width="900">
+  <img src="assets/gapmode.gif" alt="The gapped order-parameter mode of a black brane turning unstable across a first-order transition" width="900">
 </p>
 
-*A black brane crosses the spinodal branch (left), and its two sound modes (right) meet on the
-imaginary axis, where one of them grows.*
+*A black brane is carried across the first-order transition (left, φ<sub>M</sub> = 0.8, χ = 1),
+and its gapped modes are followed at zero momentum (right). Between the two zeros of ds/dT the
+order-parameter mode crosses into Im ω > 0. It is unstable there although c<sub>v</sub> > 0,
+and becomes stable again on the cold branch.*
 
 QUASTELL is a Julia pipeline for the quasinormal modes (QNMs) of five-dimensional holographic
 black branes with a self-interacting scalar field. It goes from the bulk potential to the
@@ -252,7 +254,7 @@ QUASTELL/
 ├── notebooks/
 │   └── QUASTELL_demo.ipynb   tour of the whole pipeline
 ├── assets/
-│   ├── spinodal.gif          the animation at the top of this README
+│   ├── gapmode.gif           the animation at the top of this README
 │   └── make_gif.jl           regenerates it
 └── mathematica/
     └── Derive_the_equations.nb   derivation of the equations, and the Julia exporter
