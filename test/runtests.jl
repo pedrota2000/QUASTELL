@@ -49,7 +49,7 @@ qnms_q0(phiH; kw...) =
     end
 
     @testset "AdS5-Schwarzschild limit" begin
-        r = qnms_q0(1e-3; Ns = NS, rtol = 1e-4, cutoff = 40.0)
+        r = qnms_q0(1e-3; Ns = NS, rtol = 1e-4, cutoff = 40.0, eigenfunctions = true)
         refs = [1.099407283 - 0.879767314im,         # Zphi, Delta = 3, n = 1
                 1.559725796 - 1.373337872im,         # Z2,   Delta = 4, n = 1
                 2.105948627 - 1.887444155im,         # Zphi, n = 2
@@ -58,6 +58,11 @@ qnms_q0(phiH; kw...) =
             @test minimum(abs.(r.lambda .- z)) < 1e-5
         end
         @test all(imag.(r.lambda) .< 0)              # nothing unstable
+
+        # With phi ~ 0 the two towers decouple: each mode lives in its own field.
+        n1, n2 = (argmin(abs.(r.lambda .- z)) for z in refs[1:2])
+        @test maximum(abs, r.Z2[:, n1]) < 1e-8
+        @test maximum(abs, r.Zphi[:, n2]) < 1e-4
     end
 
     @testset "conformal sound mode" begin
@@ -97,6 +102,23 @@ qnms_q0(phiH; kw...) =
         sound = r.lambda[findfirst(z -> abs(z) > 1e-8, r.lambda)]
         @test abs(real(sound)) ≈ 0.0193923 atol = 1e-6
         @test imag(sound) < 0
+    end
+
+    @testset "eigenfunctions" begin
+        kw = (q = 0.05, Ns = NS, rtol = 1e-4, bcexpand = true, verbose = false)
+        r0 = qnms(m, 1.16; kw...)
+        r  = qnms(m, 1.16; eigenfunctions = true, kw...)
+        @test r.lambda == r0.lambda && r.err == r0.err      # frequencies untouched
+        @test size(r.Zphi) == size(r.Z2) == (NS[end], length(r.lambda))
+        @test r.u == background(m, 1.16; N = NS[end]).x
+
+        v = [r.Zphi[:, 1]; r.Z2[:, 1]]                      # the unstable mode
+        @test v[argmax(abs.(v))] ≈ 1                        # peaks at 1, real there
+        @test r.eferr[1] < 1e-6
+        # No source: Zphi ~ u^3 at the boundary, not the sourced u^1.
+        u, Z = r.u, r.Zphi[:, 1]
+        @test log(abs(Z[3] / Z[2])) / log(u[3] / u[2]) ≈ 3 atol = 1e-2
+        @test plot_eigenfunctions(r) isa QUASTELL.Plots.Plot
     end
 
     @testset "plots build" begin

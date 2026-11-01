@@ -25,6 +25,10 @@ Outcome of a QNM computation at one (phiH, q).
 `raw[i]` is the full unfiltered spectrum on grid `Ns[i]`; `omega`/`lambda` are
 the frequencies that survived the multi-resolution test, `err` their drift
 between the two finest grids (so `-log10(err/|lambda|)` ~ significant digits).
+
+The last four fields are empty unless `qnms` ran with `eigenfunctions = true`:
+`u` is the finest grid, column `n` of `Zphi` and `Z2` holds the two master fields
+of mode `n` on it, and `eferr[n]` is their drift between the two finest grids.
 """
 struct QNMResult
     phiH::Float64
@@ -35,6 +39,10 @@ struct QNMResult
     omega::Vector{ComplexF64}
     lambda::Vector{ComplexF64}
     err::Vector{Float64}
+    u::Vector{Float64}
+    Zphi::Matrix{ComplexF64}
+    Z2::Matrix{ComplexF64}
+    eferr::Vector{Float64}
 end
 
 """

@@ -43,7 +43,7 @@ export mtildes, build_Mtildes, companion,
 export principal_zeros, singular_band, qnms, show_modes,
        dispersion, sound_speed, growth_rate
 export plot_potential, plot_solution, plot_thermodynamics, plot_qnms,
-       plot_convergence, plot_dispersion, plot_growth_rates
+       plot_convergence, plot_dispersion, plot_growth_rates, plot_eigenfunctions
 
 include("model.jl")            # containers and the Bea_Mateos model
 include("grid.jl")             # Chebyshev grid, progress-bar helper

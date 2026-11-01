@@ -119,9 +119,23 @@ purely imaginary with Im λ > 0: in the spinodal region c<sub>s</sub>² < 0, and
 grows instead of propagating. At `phiH = 1.40`, on the stable branch, the same call gives
 ordinary damped sound, λ = ±0.01939 − 0.00096 i.
 
+To see what a mode looks like in the bulk, ask for its eigenfunctions:
+
+```julia
+r = qnms(m, 1.16; q = 0.05, Ns = (40, 50, 60), rtol = 1e-4, bcexpand = true,
+         eigenfunctions = true)
+r.Zphi[:, 1], r.Z2[:, 1]                       # the two master fields of mode 1 on r.u
+r.eferr[1]                                     # their drift between the two finest grids
+plot_eigenfunctions(r; modes = 1:3)
+```
+
+The fields run from the AdS boundary (u = 0) to the horizon (u = 1). Each mode is scaled so
+that the larger of the two fields peaks at 1, real there. Asking for them leaves the
+frequencies unchanged and adds about 50% to the run time.
+
 [`notebooks/QUASTELL_demo.ipynb`](notebooks/QUASTELL_demo.ipynb) walks through every function,
 one per cell. It also includes the validation against AdS<sub>5</sub>-Schwarzschild, the
-dispersion relations and the growth rate of the instability.
+dispersion relations, the growth rate of the instability and the eigenfunctions of its modes.
 
 ## What is in the package
 
@@ -134,12 +148,12 @@ Every function has a docstring with the details (`?qnms` at the REPL).
 | 2. thermodynamics | `thermodynamics!(m; N, nphi)` | phiH, T/Λ, s/Λ³, pressure, free energy, energy density; `m.Tc` |
 | | `critical_temperature(s, T, phiH)` | Tc from the self-intersection of the free energy (swallowtail) |
 | 3. fluctuations | `mtildes(m, phiH; q, N)` | `Mt` (coefficients of M(ω) = Σ ωⁿ Mₙ, n ≤ 3) and the companion pair `M0`, `M1` |
-| 4. QNMs | `qnms(m, phiH; q, Ns, rtol, cutoff)` | `QNMResult`: converged λ sorted by Im λ, their drift `err`, and the raw spectra |
+| 4. QNMs | `qnms(m, phiH; q, Ns, rtol, cutoff, eigenfunctions)` | `QNMResult`: converged λ sorted by Im λ, their drift `err`, and the raw spectra; with `eigenfunctions = true` also Zφ(u), Z₂(u) of every mode and their drift `eferr` |
 | | `dispersion(m, phiH; qs, nmodes)` | the `nmodes` least-damped branches λₙ(q), followed by continuation |
 | | `sound_speed(d)` | c<sub>s</sub> fitted from a dispersion result |
 | | `growth_rate(m, phiH; qs)` | γ(k)/Λ of the unstable mode, with the hydrodynamic fit \|c<sub>s</sub>\|k − Γk²/2 |
 | | `singular_band(m, b, q, T)` | the band of ω where the master equations acquire an interior singular point |
-| plots | `plot_potential`, `plot_solution`, `plot_thermodynamics`, `plot_qnms`, `plot_convergence`, `plot_dispersion`, `plot_growth_rates` | Plots.jl figures |
+| plots | `plot_potential`, `plot_solution`, `plot_thermodynamics`, `plot_qnms`, `plot_convergence`, `plot_dispersion`, `plot_growth_rates`, `plot_eigenfunctions` | Plots.jl figures |
 
 The lower-level pieces of the fluctuation problem are also exported: `build_Mtildes`,
 `divide_eq1_by_f!`, `rescale_fields!`, `boundary_rows!`, `no_source_row!`, `companion`.
@@ -198,6 +212,9 @@ Practical notes:
   as `warm = ...` and move in small steps.
 - `plot_convergence(r)` shows the raw spectra of all grids side by side. Physical modes line
   up across the panels; artifacts do not.
+- The eigenfunctions check the boundary condition directly. A quasinormal mode has no source,
+  so Z<sub>φ</sub> ~ u³ at the boundary. The artifact of item 4 has Z<sub>φ</sub> ~ u instead,
+  although its `eferr` is as small as a real mode's.
 
 ## Validation
 

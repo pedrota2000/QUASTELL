@@ -197,3 +197,30 @@ function plot_dispersion(d::NamedTuple; size = (1000, 420), sound = true)
 end
 plot_dispersion(m::Bea_Mateos, phiH::Real; kwargs...) =
     plot_dispersion(dispersion(m, phiH; kwargs...))
+
+"""
+    plot_eigenfunctions(r; modes = 1:3, size = (1000, 420))
+
+Re (solid) and Im (dashed) of the master fields Zphi(u) and Z2(u) of modes
+`modes` of a `qnms(...; eigenfunctions = true)` result, from the AdS boundary
+(u = 0) to the horizon (u = 1), interpolated spectrally between the grid points.
+"""
+function plot_eigenfunctions(r::QNMResult; modes = 1:min(3, length(r.lambda)),
+                             size = (1000, 420))
+    isempty(r.u) && error("no eigenfunctions stored: rerun qnms with eigenfunctions = true")
+    uu = range(0, 1, length = 400)
+    p1 = plot(xlabel = "u", ylabel = "Zφ", title = "Zφ  (Re solid, Im dashed)",
+              legend = :best)
+    p2 = plot(xlabel = "u", ylabel = "Z₂", title = "Z₂  (Re solid, Im dashed)",
+              legend = :best)
+    for (i, n) in enumerate(modes)
+        lab = @sprintf("n = %d:  λ = %.5f %+.5fi", n, real(r.lambda[n]), imag(r.lambda[n]))
+        for (p, Z) in ((p1, r.Zphi), (p2, r.Z2))
+            z = _cheb_interp(r.u, Z[:, n], uu)
+            plot!(p, uu, real.(z), lw = 2, c = i, label = lab)
+            plot!(p, uu, imag.(z), lw = 2, c = i, ls = :dash, label = "")
+        end
+    end
+    return plot(p1, p2, layout = (1, 2), size = size,
+                left_margin = 5Plots.mm, bottom_margin = 4Plots.mm)
+end

@@ -40,6 +40,35 @@ function singular_band(m::Bea_Mateos, b::Background, q::Real, T::Real)
 end
 
 """
+    _pencil(m, phiH, q, N; balance, rescale, divide_f, bcexpand) -> A, sc, b
+
+The matrix polynomial `P(z) = sum(A[n] z^(n-1))` whose eigenvalues are the
+frequencies on one grid, `z = omega/sc`, and the background it was built on.
+"""
+function _pencil(m::Bea_Mateos, phiH::Real, q::Real, N::Int; balance::Bool = true,
+                 rescale = (2, 0), divide_f::Bool = true, bcexpand::Bool = false)
+    _, _, Mt, b = mtildes(m, phiH; q = q, N = N, rescale = rescale, divide_f = divide_f,
+                          bcexpand = bcexpand)
+    balance || return Mt, 1.0, b
+
+    # Two exact equivalences that make the pencil far better conditioned.
+    # (i) solve for lambda = omega/2piT instead of omega: Mt[n] carries wildly
+    #     different powers of T (Mt[1] ~ q^2 T^2, Mt[4] ~ T^0), which spreads
+    #     the pencil over many orders of magnitude;
+    # (ii) divide each row by its largest entry across all Mt[n] -- a left
+    #     diagonal scaling, so the spectrum is untouched.
+    sc = 2π * b.T
+    A = [ComplexF64.(Mt[n]) .* sc^(n-1) for n in eachindex(Mt)]
+    for i in axes(A[1], 1)
+        s = maximum(maximum(abs, view(X, i, :)) for X in A)
+        s > 0 && for X in A
+            @views X[i, :] ./= s
+        end
+    end
+    return A, sc, b
+end
+
+"""
     _spectrum(m, phiH, q, N; cutoff) -> omegas, T
 
 Raw spectrum on one grid: every finite eigenvalue of the companion pencil with
@@ -48,30 +77,10 @@ Raw spectrum on one grid: every finite eigenvalue of the companion pencil with
 function _spectrum(m::Bea_Mateos, phiH::Real, q::Real, N::Int; cutoff::Real = Inf,
                    balance::Bool = true, rescale = (2, 0), divide_f::Bool = true,
                    bcexpand::Bool = false)
-    _, _, Mt, b = mtildes(m, phiH; q = q, N = N, rescale = rescale, divide_f = divide_f,
-                          bcexpand = bcexpand)
-    sc = 2π * b.T
-
-    if balance
-        # Two exact equivalences that make the pencil far better conditioned.
-        # (i) solve for lambda = omega/2piT instead of omega: Mt[n] carries wildly
-        #     different powers of T (Mt[1] ~ q^2 T^2, Mt[4] ~ T^0), which spreads
-        #     the pencil over many orders of magnitude;
-        # (ii) divide each row by its largest entry across all Mt[n] -- a left
-        #     diagonal scaling, so the spectrum is untouched.
-        A = [ComplexF64.(Mt[n]) .* sc^(n-1) for n in eachindex(Mt)]
-        for i in axes(A[1], 1)
-            s = maximum(maximum(abs, view(X, i, :)) for X in A)
-            s > 0 && for X in A
-                @views X[i, :] ./= s
-            end
-        end
-        M0, M1 = companion(A)
-        w = eigvals(M0, -M1) .* sc               # back to omega
-    else
-        M0, M1 = companion(Mt)
-        w = eigvals(M0, -M1)
-    end
+    A, sc, b = _pencil(m, phiH, q, N; balance = balance, rescale = rescale,
+                       divide_f = divide_f, bcexpand = bcexpand)
+    M0, M1 = companion(A)
+    w = eigvals(M0, -M1) .* sc                   # back to omega
 
     # The rescaling Zphi = u^s Ztilde with s >= 1 zeroes the u = 0 column of every
     # Mt[n], and once `no_source_row!` has cleared row 1 too, e_1 is an exact
@@ -79,13 +88,58 @@ function _spectrum(m::Bea_Mateos, phiH::Real, q::Real, N::Int; cutoff::Real = In
     # test (err = 0) and `dispersion` locks onto it as soon as a growth rate gets
     # small.  Nothing physical sits at |lambda| < 1e-12 for q != 0, and at q = 0
     # `origintol` removes that region anyway.
-    keep = [z for z in w if isfinite(z) && abs(z) > 1e-12 * sc && abs(z) < cutoff]
+    keep = [z for z in w if isfinite(z) && abs(z) > 1e-12 * (2π * b.T) && abs(z) < cutoff]
     return ComplexF64.(keep), b.T
 end
 
 """
+    _nullvector(A, z) -> v
+
+Null vector of `P(z) = sum(A[n] z^(n-1))` at one of its eigenvalues: the right
+singular vector of the smallest singular value.
+
+Used instead of the eigenvectors of the companion pencil because with
+`bcexpand = true` that pencil is singular (see `no_source_row!`): column 1, the
+value Ztilde(u_1), is zero in every `A[n]`, so `e_1` is in the kernel of P(z) for
+every z and any multiple of it can be added to a mode.  The column is left out
+and its entry set to zero; it multiplies `u_1^s = 0` when Zphi is rebuilt, so
+its value is immaterial.  One SVD of a 2N x 2N matrix per mode is also far
+cheaper than `eigen` on the 6N x 6N pencil, and `eigvals` -- hence every
+frequency -- is untouched.
+"""
+function _nullvector(A::Vector{<:AbstractMatrix}, z::Number)
+    cols = [j for j in axes(A[1], 2) if any(X -> any(!iszero, view(X, :, j)), A)]
+    P = sum(A[n] .* z^(n-1) for n in eachindex(A))
+    v = zeros(ComplexF64, size(P, 2))
+    v[cols] = svd(P[:, cols]).V[:, end]
+    return v
+end
+
+# The master fields of the mode at frequency `w` on the grid of `pen = _pencil(...)`,
+# undoing the rescaling Zphi = u^s Ztilde.
+function _fields(pen, w::Number, rescale)
+    A, sc, b = pen
+    v = _nullvector(A, w / sc)
+    N = b.N
+    return b.x .^ rescale[1] .* v[1:N], b.x .^ rescale[2] .* v[N+1:2N]
+end
+
+# Barycentric interpolation of `v`, sampled on the Chebyshev-Lobatto grid `x` of
+# `cheby`, to the points `y`.
+function _cheb_interp(x::AbstractVector, v::AbstractVector, y::AbstractVector)
+    n = length(x)
+    wb = [(-1)^j * (j == 0 || j == n-1 ? 0.5 : 1.0) for j in 0:n-1]
+    return map(y) do t
+        i = findfirst(==(t), x)
+        i === nothing || return v[i]
+        c = wb ./ (t .- x)
+        sum(c .* v) / sum(c)
+    end
+end
+
+"""
     qnms(m, phiH; q = 0.0, Ns = (30, 40, 50), rtol = 1e-4, cutoff = Inf,
-         verbose = true) -> QNMResult
+         verbose = true, eigenfunctions = false) -> QNMResult
 
 Quasinormal frequencies at horizon value `phiH` and dimensionless momentum `q`.
 
@@ -101,12 +155,29 @@ Results are sorted by decreasing `imag(lambda)` (least damped first): any mode
 with `imag > 0` is an instability.  `r.lambda = r.omega / 2 pi T` is the
 dimensionless frequency; `r.err` is the residual drift between the two finest
 grids.  The run is appended to `m.qnm_runs`.
+
+With `eigenfunctions = true` every accepted mode also carries its two master
+fields on the finest grid `r.u` (u = 0 the AdS boundary, u = 1 the horizon):
+`r.Zphi[:, n]` and `r.Z2[:, n]` for mode `n`, scaled together so that the larger
+of the two peaks at 1, real and positive there.  Zphi is the physical field, with
+the rescaling `Zphi = u^s Ztilde` undone.  The same fields are solved on the
+second-finest grid, interpolated onto `r.u` and compared after the best complex
+rescaling: `r.eferr[n]` is that relative distance, the eigenfunction counterpart
+of `r.err`.  Plot them with `plot_eigenfunctions`.  The frequencies are the same
+either way.
+
+`eferr` measures resolution, not boundary conditions.  The boundary-layer artifact
+of `divide_eq1_by_f!` (phiM = 0.8, chi = 0.6, phiH = 0.3, q = 0, `bcexpand = false`,
++0.21935i) is a spike only in Ztilde: in Zphi it is the smooth sourced branch and
+converges like a mode (eferr 5e-7).  What gives it away is the falloff -- with
+`bcexpand = true` every mode has Zphi ~ u^3.000 at the boundary (no source,
+Delta_+ = 3), while that artifact has Zphi ~ u^1.000 (Delta_- = 1).
 """
 function qnms(m::Bea_Mateos, phiH::Real; q::Real = 0.0, Ns = (30, 40, 50),
               rtol::Real = 1e-4, cutoff::Real = Inf, verbose::Bool = true,
               drop_band::Bool = true, bandtol::Real = 1e-2, origintol::Real = 1e-3,
               rescale = (2, 0), divide_f::Bool = true, progress::Bool = false,
-              bcexpand::Bool = false)
+              bcexpand::Bool = false, eigenfunctions::Bool = false)
     Nlist = sort(collect(Int, Ns))
     length(Nlist) >= 2 || error("give at least two grid sizes to separate physical from spurious modes")
 
@@ -181,7 +252,31 @@ function qnms(m::Bea_Mateos, phiH::Real; q::Real = 0.0, Ns = (30, 40, 50),
         nunst > 0 && @printf("  *** %d mode(s) with Im(omega) > 0: UNSTABLE ***\n", nunst)
     end
 
-    r = QNMResult(float(phiH), float(q), Tref, Nlist, raw, acc, lam, accerr)
+    u = Float64[]; Zphi = zeros(ComplexF64, 0, 0); Z2 = zeros(ComplexF64, 0, 0)
+    eferr = Float64[]
+    if eigenfunctions
+        # Each mode on the two finest grids, the coarser one at its own nearest
+        # eigenvalue -- the same match `err` measures.
+        opts = (rescale = rescale, divide_f = divide_f, bcexpand = bcexpand)
+        pf = _pencil(m, phiH, q, Nlist[end]; opts...)
+        pc = _pencil(m, phiH, q, Nlist[end-1]; opts...)
+        u = pf[3].x
+        Zphi = zeros(ComplexF64, length(u), length(acc)); Z2 = similar(Zphi)
+        eferr = zeros(length(acc))
+        for (n, w) in enumerate(acc)
+            f1, f2 = _fields(pf, w, rescale)
+            wc = raw[end-1][argmin(abs.(raw[end-1] .- w))]
+            c1, c2 = _fields(pc, wc, rescale)
+            vf = [f1; f2]
+            vc = [_cheb_interp(pc[3].x, c1, u); _cheb_interp(pc[3].x, c2, u)]
+            eferr[n] = norm(vf .- (dot(vc, vf) / dot(vc, vc)) .* vc) / norm(vf)
+            k = argmax(abs.(vf))
+            Zphi[:, n] = f1 ./ vf[k]; Z2[:, n] = f2 ./ vf[k]
+        end
+    end
+
+    r = QNMResult(float(phiH), float(q), Tref, Nlist, raw, acc, lam, accerr,
+                  u, Zphi, Z2, eferr)
     push!(m.qnm_runs, r)
     return r
 end
@@ -189,15 +284,19 @@ end
 """
     show_modes(r; nmax = 10)
 
-Table of the converged dimensionless frequencies lambda = omega/2piT.
+Table of the converged dimensionless frequencies lambda = omega/2piT, with the
+eigenfunction drift `eferr` when `qnms` stored the eigenfunctions.
 """
 function show_modes(r::QNMResult; nmax::Int = 10)
+    ef = !isempty(r.eferr)
     @printf("phiH = %g, q = %g, T = %.8g, grids %s\n",
             r.phiH, r.q, r.T, string(r.Ns))
-    @printf("%4s  %-22s %-22s %-10s\n", "n", "Re(w/2piT)", "Im(w/2piT)", "err(w)")
+    @printf("%4s  %-22s %-22s %-10s%s\n", "n", "Re(w/2piT)", "Im(w/2piT)", "err(w)",
+            ef ? " eferr" : "")
     for n in 1:min(nmax, length(r.lambda))
-        @printf("%4d  %-22.14g %-22.14g %-10.3g\n",
-                n, real(r.lambda[n]), imag(r.lambda[n]), r.err[n])
+        @printf("%4d  %-22.14g %-22.14g %-10.3g%s\n",
+                n, real(r.lambda[n]), imag(r.lambda[n]), r.err[n],
+                ef ? @sprintf(" %.3g", r.eferr[n]) : "")
     end
     length(r.lambda) > nmax && @printf("...  (%d modes total)\n", length(r.lambda))
     return nothing
