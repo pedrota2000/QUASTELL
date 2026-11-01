@@ -53,9 +53,9 @@ The metric is written in ingoing Eddington–Finkelstein coordinates, as in the 
 notebook:
 
 $$
-ds^2 = \frac{1}{u^2}\left[-f(u)\,g(u)\,dt^2 - 2\sqrt{g(u)}\,dt\,du + g(u)\left(dx^2 + dy^2 + dz^2\right)\right],
+ds^2 = \frac{1}{u^2}\left[-f(u) \, g(u) \, dt^2 - 2\sqrt{g(u)} \, dt \, du + g(u)\left(dx^2 + dy^2 + dz^2\right)\right],
 \qquad
-\phi = u\,\phi_0(u).
+\phi = u \, \phi_0(u).
 $$
 
 The boundary is at u = 0 (f = g = 1) and the horizon at u = 1 (f = 0), so
