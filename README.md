@@ -11,6 +11,7 @@
                           QUAsinormal Spectra of ThErmaL hoLography
 ```
 
+[![arXiv](https://img.shields.io/badge/arXiv-XXXX.XXXXX-b31b1b.svg)](https://arxiv.org/abs/XXXX.XXXXX)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Julia code for the quasinormal modes (QNMs) of five-dimensional holographic black branes with a
@@ -136,13 +137,21 @@ See the docstrings for details (`?qnms`).
 The lower-level steps are exported too: `build_Mtildes`, `divide_eq1_by_f!`,
 `rescale_fields!`, `boundary_rows!`, `no_source_row!`, `companion`.
 
-## Deriving the equations
+## Mathematica
 
-[`mathematica/Derive_the_equations.nb`](mathematica/Derive_the_equations.nb) derives the master
-equations at finite $\omega$ and $k$ and exports their coefficients as Julia (`Mtildes.jl`).
-That export is the coefficient block of `build_Mtildes` in
-[`src/fluctuations.jl`](src/fluctuations.jl). If the equations change, re-run the notebook and
-paste it in again.
+Several Mathematica codes were developed during this work. These are the ones included here:
+
+- [`mathematica/Derive_the_equations.nb`](mathematica/Derive_the_equations.nb) derives the master
+  equations at finite $\omega$ and $k$ and exports their coefficients as Julia (`Mtildes.jl`).
+  That export is the coefficient block of `build_Mtildes` in
+  [`src/fluctuations.jl`](src/fluctuations.jl). If the equations change, re-run the notebook and
+  paste it in again.
+- [`mathematica/zero_frequency/`](mathematica/zero_frequency) computes the static modes,
+  $\omega = 0$, for $\phi_M = 0.8$ and $\phi_M = 1$ with $\chi = 1$.
+  `Derive_static_equations.nb` takes the master equations to $\omega = 0$ and checks the solver's
+  coefficients. `QNMsZeroFrequency.nb` solves for $(q/2\pi T)^2$ on the backgrounds
+  `Background_N60_phiM_*.m`. A positive eigenvalue is a momentum where a mode crosses
+  $\omega = 0$, the edge of an unstable band. Results are written to `Results/`.
 
 ## Spurious modes
 
@@ -213,7 +222,9 @@ QUASTELL/
   test/runtests.jl
   notebooks/QUASTELL_demo.ipynb
   assets/               gapmode.gif and the script that makes it
-  mathematica/Derive_the_equations.nb
+  mathematica/
+    Derive_the_equations.nb
+    zero_frequency/     static modes at omega = 0
 ```
 
 ## References
