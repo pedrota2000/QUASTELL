@@ -95,7 +95,7 @@ thermodynamics!(m; N = 50, nphi = 2000)        # s(T); sets m.Tc = 0.3735675
 plot_thermodynamics(m)
 
 # phiH = 1.16 is on the spinodal branch, phiH in [1.033, 1.271]
-r = qnms(m, 1.16; q = 0.05, Ns = (40, 50, 60), rtol = 1e-4, bcexpand = true)
+r = qnms(m, 1.16; q = 0.05, Ns = (40, 50, 60), rtol = 1e-4)
 r.lambda[1]                                    # 6.8e-12 + 0.011068im
 plot_qnms(r)
 ```
@@ -107,8 +107,7 @@ damped sound, $\lambda = \pm 0.01939 - 0.00096 i$.
 For the eigenfunctions, add `eigenfunctions = true`:
 
 ```julia
-r = qnms(m, 1.16; q = 0.05, Ns = (40, 50, 60), rtol = 1e-4, bcexpand = true,
-         eigenfunctions = true)
+r = qnms(m, 1.16; q = 0.05, Ns = (40, 50, 60), rtol = 1e-4, eigenfunctions = true)
 plot_eigenfunctions(r; modes = 1:3)
 ```
 
@@ -158,7 +157,7 @@ Several Mathematica codes were developed during this work. These are the ones in
 Most eigenvalues of the discretised problem are artifacts. `qnms` removes them as follows.
 
 1. **Several grids.** A frequency is kept only if it appears on every grid in `Ns`, within
-   `rtol * max(1, abs(lambda))`. This is the test of Jansen's
+   `rtol * max(1, abs(omega))`. This is the test of Jansen's
    [QNMspectral](https://github.com/APJansen/QNMspectral).
 2. **Singular band.** For $q \neq 0$, collocation puts $N$-independent fake modes where the
    master equations have an interior singular point. They are removed by location (`bandtol`).
@@ -167,9 +166,11 @@ Most eigenvalues of the discretised problem are artifacts. `qnms` removes them a
 3. **Factor of f.** Equation 1 carries a spurious factor $f(u)$, which gives a fake mode at
    $\lambda = -i$. `divide_f = true` (the default) removes it. Trust the sign of the imaginary
    part only with `rtol <= 1e-4`.
-4. **Boundary condition.** `bcexpand = true` imposes the no-source condition on the boundary
-   expansion. This removes a boundary artifact and improves the light modes by four to five
-   orders of magnitude. It is off by default but recommended.
+4. **Boundary condition.** `bcexpand = true` (the default) imposes the no-source condition on
+   the boundary expansion. This removes a boundary artifact and improves the light modes by four
+   to five orders of magnitude. With `bcexpand = false` the light modes converge slowly enough
+   that step 1 can reject a physical one: at $\phi_M = 0.7$, $\chi = 1$, $q = 0$ and
+   `Ns = (30, 40, 50)` it drops the unstable gapped mode for $1.2 \le \phi_H \le 1.7$.
 
 Notes:
 
@@ -189,12 +190,12 @@ With `phiH = 1e-3`, $q = 0$ and `Ns = (60, 70, 90)`:
 
 | mode | QUASTELL | reference | difference |
 |---|---|---|---|
-| $Z_\phi$, $n = 1$ | $1.099407474 - 0.879767076 i$ | $1.099407283 - 0.879767314 i$ | $3.1 \times 10^{-7}$ |
+| $Z_\phi$, $n = 1$ | $1.099407489 - 0.879767044 i$ | $1.099407283 - 0.879767314 i$ | $3.4 \times 10^{-7}$ |
 | $Z_2$, $n = 1$ | $1.559725860 - 1.373337493 i$ | $1.559725796 - 1.373337872 i$ | $3.8 \times 10^{-7}$ |
-| $Z_\phi$, $n = 2$ | $2.105948634 - 1.887443607 i$ | $2.105948627 - 1.887444155 i$ | $5.5 \times 10^{-7}$ |
-| $Z_2$, $n = 2$ | $2.584760685 - 2.381784179 i$ | $2.584760 - 2.381785 i$ | $\sim 10^{-6}$ (6-digit reference) |
+| $Z_\phi$, $n = 2$ | $2.105948648 - 1.887443582 i$ | $2.105948627 - 1.887444155 i$ | $5.7 \times 10^{-7}$ |
+| $Z_2$, $n = 2$ | $2.584760187 - 2.381784240 i$ | $2.584760 - 2.381785 i$ | $\sim 10^{-6}$ (6-digit reference) |
 
-At $q = 0.05$ the sound mode is $\lambda = 0.028886922 - 0.000833145 i$. Hydrodynamics,
+At $q = 0.05$ the sound mode is $\lambda = 0.028886921 - 0.000833145 i$. Hydrodynamics,
 $\lambda = q/\sqrt{3} - i q^2/3$, gives $0.028867513 - 0.000833333 i$. The difference is
 $O(q^3)$.
 

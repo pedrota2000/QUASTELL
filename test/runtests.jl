@@ -104,6 +104,16 @@ qnms_q0(phiH; kw...) =
         @test imag(sound) < 0
     end
 
+    @testset "gapped instability with the default grids" begin
+        # phiM = 0.7, chi = 1: the q = 0 gapped mode is unstable between the zeros of
+        # ds/dphiH (1.0787, 1.7388).  With bcexpand = false the N = 30 grid put it at
+        # 0.3183i and the resolution test dropped it.
+        m7 = Bea_Mateos(0.7, 10)
+        r = @test_logs (:warn, r"q = 0") match_mode = :any qnms(m7, 1.3; q = 0.0, verbose = false)
+        @test imag(r.lambda[1]) ≈ 0.3119023 atol = 1e-6
+        @test abs(real(r.lambda[1])) < 1e-8
+    end
+
     @testset "eigenfunctions" begin
         kw = (q = 0.05, Ns = NS, rtol = 1e-4, bcexpand = true, verbose = false)
         r0 = qnms(m, 1.16; kw...)

@@ -46,7 +46,7 @@ The matrix polynomial `P(z) = sum(A[n] z^(n-1))` whose eigenvalues are the
 frequencies on one grid, `z = omega/sc`, and the background it was built on.
 """
 function _pencil(m::Bea_Mateos, phiH::Real, q::Real, N::Int; balance::Bool = true,
-                 rescale = (2, 0), divide_f::Bool = true, bcexpand::Bool = false)
+                 rescale = (2, 0), divide_f::Bool = true, bcexpand::Bool = true)
     _, _, Mt, b = mtildes(m, phiH; q = q, N = N, rescale = rescale, divide_f = divide_f,
                           bcexpand = bcexpand)
     balance || return Mt, 1.0, b
@@ -76,7 +76,7 @@ Raw spectrum on one grid: every finite eigenvalue of the companion pencil with
 """
 function _spectrum(m::Bea_Mateos, phiH::Real, q::Real, N::Int; cutoff::Real = Inf,
                    balance::Bool = true, rescale = (2, 0), divide_f::Bool = true,
-                   bcexpand::Bool = false)
+                   bcexpand::Bool = true)
     A, sc, b = _pencil(m, phiH, q, N; balance = balance, rescale = rescale,
                        divide_f = divide_f, bcexpand = bcexpand)
     M0, M1 = companion(A)
@@ -139,9 +139,12 @@ end
 
 """
     qnms(m, phiH; q = 0.0, Ns = (30, 40, 50), rtol = 1e-4, cutoff = Inf,
-         verbose = true, eigenfunctions = false) -> QNMResult
+         verbose = true, bcexpand = true, eigenfunctions = false) -> QNMResult
 
 Quasinormal frequencies at horizon value `phiH` and dimensionless momentum `q`.
+`bcexpand = true` imposes no source on the boundary expansion (`no_source_row!`);
+`bcexpand = false` is the plain Dirichlet row, which converges slowly enough on the
+light modes that the resolution test can reject a physical one.
 
 The spectrum is computed independently on **every** grid size in `Ns` — the
 background is re-solved on each one, never interpolated, so the only thing that
@@ -177,7 +180,7 @@ function qnms(m::Bea_Mateos, phiH::Real; q::Real = 0.0, Ns = (30, 40, 50),
               rtol::Real = 1e-4, cutoff::Real = Inf, verbose::Bool = true,
               drop_band::Bool = true, bandtol::Real = 1e-2, origintol::Real = 1e-3,
               rescale = (2, 0), divide_f::Bool = true, progress::Bool = false,
-              bcexpand::Bool = false, eigenfunctions::Bool = false)
+              bcexpand::Bool = true, eigenfunctions::Bool = false)
     Nlist = sort(collect(Int, Ns))
     length(Nlist) >= 2 || error("give at least two grid sizes to separate physical from spurious modes")
 

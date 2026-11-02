@@ -129,7 +129,7 @@ pencil, so that the quasinormal frequencies are the eigenvalues of
 """
 function mtildes(m::Bea_Mateos, phiH::Real; q::Real = 0.0, N::Int = 40, bg = nothing,
                 bc::Bool = true, rescale = (2, 0), divide_f::Bool = true,
-                bcexpand::Bool = false)
+                bcexpand::Bool = true)
     b = bg === nothing ? background(m, phiH; N = N) : bg
     # A diverged Newton solve returns a Background full of NaN, which otherwise
     # only surfaces much later as LAPACKException(360) out of `eigvals`.  The
@@ -388,8 +388,11 @@ three-point version against `A u^(1-s) + B u^(3-s) + C u^(5-s)` would be sharper
 (ii) `Z2` is not rescaled and its sourced branch is a constant, which plain
 Dirichlet does exclude -- consistent with the artifact living entirely in Zphi
 (`|Z2| = 5e-17` in its eigenvector), though Z2's branch powers were not
-re-derived here.  (iii) OFF by default: switching it on changes every light-mode
-value in the fourth digit.
+re-derived here.  (iii) It changes every light-mode value in the fourth digit.
+ON by default since 2026-11-02: without it, at phiM = 0.7, chi = 1, phiH = 1.30,
+q = 0 the N = 30 grid puts the unstable gap mode at 0.3183i instead of 0.3119i,
+so `qnms` on `Ns = (30, 40, 50)` dropped it for every phiH in [1.20, 1.70].  With
+it, N = 30 already gives seven digits.
 """
 function no_source_row!(Mt::Vector{<:AbstractMatrix}, b::Background, s::Integer;
                         Deltap::Integer = 3)
